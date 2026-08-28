@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Soil Rover Mission Planner</title>
+
+    <!-- Leaflet -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            display: flex;
+        }
+
+        /* =================================================
+           MAP
+           ================================================= */
+
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+
+
+        /* =================================================
+           CONTROL PANEL
+           ================================================= */
+
+        #panel {
+
+            width: 360px;
+
+            height: 100vh;
+
+            padding: 20px;
+
+            background: #ffffff;
+
+            border-left: 1px solid #d5d5d5;
+
+            overflow-y: auto;
+
+            z-index: 1000;
+        }
+
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 22px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+
+        /* =================================================
+           INPUTS
+           ================================================= */
+
+        label {
+
+            display: block;
+
+            margin-top: 12px;
+
+            margin-bottom: 5px;
+
+            font-size: 14px;
+
+            font-weight: 600;
+        }
+
+
+        input {
+
+            width: 100%;
+
+            padding: 10px;
+
+            border: 1px solid #aaa;
+
+            border-radius: 6px;
+
+            font-size: 16px;
+        }
+
+
+        /* =================================================
+           BUTTONS
+           ================================================= */
+
+        button {
+
+            width: 100%;
+
+            padding: 11px;
+
+            margin-top: 10px;
+
+            border: none;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+
+            font-size: 15px;
+
+            font-weight: 600;
+        }
+
+
+        #centerRover {
+
+            background: #e7f0ff;
+
+        }
+
+
+        #generate {
+
+            background: #222;
+
+            color: white;
+
+        }
+
+
+        #clear {
+
+            background: #eeeeee;
+
+        }
+
+
+        #undo {
+
+            background: #eeeeee;
+
+        }
+
+
+        /* =================================================
+           STATUS BOXES
+           ================================================= */
+
+        .status {
+
+            padding: 12px;
+
+            margin-top: 8px;
+
+            background: #f5f5f5;
+
+            border-radius: 6px;
+
+            font-size: 13px;
+
+            line-height: 1.6;
+        }
+
+
+        .connected {
+
+            color: #19752a;
+
+            font-weight: bold;
+
+        }
+
+
+        .disconnected {
+
+            color: #a33a20;
+
+            font-weight: bold;
+
+        }
+
+
+        .warning {
+
+            color: #a35b00;
+
+            font-weight: bold;
+
+        }
+
+
+        .info {
+
+            color: #444;
+
+        }
+
+
+        /* =================================================
+           MAP LEGEND
+           ================================================= */
+
+        .legend {
+
+            position: absolute;
+
+            bottom: 20px;
+
+            left: 20px;
+
+            z-index: 1000;
+
+            background: white;
+
+            padding: 10px 12px;
+
+            border-radius: 6px;
+
+            box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+
+            font-size: 12px;
+
+            line-height: 1.7;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     MAP
+     ===================================================== -->
+
+<div id="map"></div>
+
+
+<!-- =====================================================
+     CONTROL PANEL
+     ===================================================== -->
+
+<div id="panel">
+
+    <h1>Soil Rover Mission Planner</h1>
+
+    <div class="subtitle">
+        ROS 2 GPS-based autonomous mission planner
+    </div>
+
+
+    <!-- =================================================
+         ROVER GPS
+         ================================================= -->
+
+    <h3>Rover GPS</h3>
+
+    <button id="centerRover">
+        🛰️ Center on Rover
+    </button>
+
+    <div
+        id="gpsStatus"
+        class="status"
+    >
+        Connecting to ROS GPS...
+    </div>
+
+
+    <!-- =================================================
+         MISSION SETTINGS
+         ================================================= -->
+
+    <h3>Mission Settings</h3>
+
+
+    <label for="pointSpacing">
+        Point spacing (m)
+    </label>
+
+    <input
+        id="pointSpacing"
+        type="number"
+        value="5"
+        min="1"
+        max="50"
+        step="0.5"
+    >
+
+
+    <label for="lineSpacing">
+        Line spacing (m)
+    </label>
+
+    <input
+        id="lineSpacing"
+        type="number"
+        value="5"
+        min="1"
+        max="50"
+        step="0.5"
+    >
+
+
+    <!-- =================================================
+         FIELD CONTROLS
+         ================================================= -->
+
+    <h3>Field</h3>
+
+    <div class="status">
+
+        Click on the map to add field boundary points.
+
+        <br><br>
+
+        Each click immediately creates a marker.
+
+        <br><br>
+
+        Minimum:
+        <b>3 points</b>
+
+    </div>
+
+
+    <button id="undo">
+        ↩ Undo Last Point
+    </button>
+
+
+    <button id="clear">
+        Clear Field
+    </button>
+
+
+    <!-- =================================================
+         MISSION
+         ================================================= -->
+
+    <h3>Mission</h3>
+
+    <button id="generate">
+        Generate Mission
+    </button>
+
+
+    <div
+        id="missionStatus"
+        class="status"
+    >
+        No field selected.
+    </div>
+
+
+</div>
+
+
+<!-- =====================================================
+     LEGEND
+     ===================================================== -->
+
+<div class="legend">
+
+    🔵 Field boundary point<br>
+
+    🔷 Field boundary<br>
+
+    🔴 Generated waypoint<br>
+
+    🔵 Rover GPS
+
+</div>
+
+
+<!-- =====================================================
+     LEAFLET
+     ===================================================== -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+<script>
+
+
+/* ========================================================
+   CONFIGURATION
+   ======================================================== */
+
+
+/*
+ * ROS 2 bridge.
+ *
+ * When the webpage is hosted on the Raspberry Pi:
+ *
+ *     ws://<RPI-IP>:9090
+ *
+ * During local simulation:
+ *
+ *     ws://localhost:9090
+ *
+ * Change this if necessary.
+ */
+
+const ROSBRIDGE_URL =
+    "ws://" + window.location.hostname + ":9090";
+
+
+/*
+ * GPS topic published by the rover/simulator.
+ */
+
+const GPS_TOPIC =
+    "/gps/fix";
+
+
+/*
+ * GPS message type.
+ */
+
+const GPS_TYPE =
+    "sensor_msgs/msg/NavSatFix";
+
+const MISSION_TOPIC =
+    "/mission";
+
+const MISSION_TYPE =
+    "rover_interfaces/msg/Mission";
+
+let missionAdvertised = false;
+
+
+/*
+ * Only accept GPS data that is reasonably usable.
+ *
+ * This is NOT navigation accuracy.
+ * It simply prevents obviously invalid data.
+ */
+
+const MAX_ACCEPTABLE_HDOP =
+    10;
+
+
+/* ========================================================
+   MAP
+   ======================================================== */
+
+
+const map = L.map("map").setView(
+    [19.0760, 72.8777],
+    15
+);
+
+
+/*
+ * OpenStreetMap base map.
+ */
+
+L.tileLayer(
+
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+
+    {
+
+        maxZoom: 19,
+
+        attribution:
+            "&copy; OpenStreetMap contributors"
+
+    }
+
+).addTo(map);
+
+
+/* ========================================================
+   APPLICATION STATE
+   ======================================================== */
+
+
+let fieldPoints = [];
+
+let fieldPointMarkers = [];
+
+let fieldPolygon = null;
+
+let previewLines = [];
+
+let previewMarkers = [];
+
+let roverMarker = null;
+
+let roverAccuracyCircle = null;
+
+let roverPosition = null;
+
+let rosSocket = null;
+
+let roverCentered = false;
+
+
+/* ========================================================
+   FIELD POINT MARKERS
+   ======================================================== */
+
+
+/*
+ * Add ONE visible marker immediately when
+ * the user clicks.
+ */
+
+map.on("click", function(event) {
+
+    const point = [
+
+        event.latlng.lat,
+
+        event.latlng.lng
+
+    ];
+
+
+    fieldPoints.push(point);
+
+
+    /*
+     * IMPORTANT:
+     *
+     * The marker is added immediately.
+     * It does NOT require a second point.
+     */
+
+    const marker =
+        L.circleMarker(
+
+            point,
+
+            {
+
+                radius: 6,
+
+                weight: 2,
+
+                fillOpacity: 1
+
+            }
+
+        ).addTo(map);
+
+
+    marker.bindTooltip(
+        "Point " + fieldPoints.length,
+        {
+            permanent: false
+        }
+    );
+
+
+    fieldPointMarkers.push(marker);
+
+
+    redrawField();
+
+    updatePreview();
+
+});
+
+
+/* ========================================================
+   DRAW FIELD
+   ======================================================== */
+
+
+function redrawField() {
+
+    if (fieldPolygon) {
+
+        map.removeLayer(fieldPolygon);
+
+        fieldPolygon = null;
+
+    }
+
+
+    /*
+     * A single point is already visible
+     * through its circle marker.
+     */
+
+    if (fieldPoints.length >= 2) {
+
+        fieldPolygon = L.polyline(
+
+            fieldPoints,
+
+            {
+
+                color: "blue",
+
+                weight: 3
+
+            }
+
+        ).addTo(map);
+
+    }
+
+
+    /*
+     * Once we have 3+ points, show the
+     * filled polygon.
+     */
+
+    if (fieldPoints.length >= 3) {
+
+        fieldPolygon =
+            L.polygon(
+
+                fieldPoints,
+
+                {
+
+                    color: "blue",
+
+                    weight: 3,
+
+                    fillOpacity: 0.12
+
+                }
+
+            ).addTo(map);
+
+    }
+
+}
+
+
+/* ========================================================
+   UNDO
+   ======================================================== */
+
+
+document
+    .getElementById("undo")
+    .addEventListener(
+        "click",
+        function() {
+
+            if (fieldPoints.length === 0) {
+
+                return;
+
+            }
+
+
+            fieldPoints.pop();
+
+
+            const marker =
+                fieldPointMarkers.pop();
+
+
+            if (marker) {
+
+                map.removeLayer(marker);
+
+            }
+
+
+            redrawField();
+
+            updatePreview();
+
+        }
+    );
+
+
+/* ========================================================
+   CLEAR FIELD
+   ======================================================== */
+
+
+document
+    .getElementById("clear")
+    .addEventListener(
+        "click",
+        function() {
+
+            fieldPoints = [];
+
+
+            fieldPointMarkers.forEach(
+
+                marker =>
+                    map.removeLayer(marker)
+
+            );
+
+
+            fieldPointMarkers = [];
+
+
+            if (fieldPolygon) {
+
+                map.removeLayer(
+                    fieldPolygon
+                );
+
+                fieldPolygon = null;
+
+            }
+
+
+            clearPreview();
+
+
+            document.getElementById(
+                "missionStatus"
+            ).innerHTML =
+                "No field selected.";
+
+        }
+    );
+
+
+/* ========================================================
+   ROSBRIDGE CONNECTION
+   ======================================================== */
+
+
+function connectROS() {
+
+    /*
+     * Close old socket if necessary.
+     */
+
+    if (rosSocket) {
+
+        try {
+
+            rosSocket.close();
+
+        } catch (e) {}
+
+    }
+
+
+    setGPSStatus(
+        "Connecting to ROS 2..."
+    );
+
+
+    rosSocket =
+        new WebSocket(
+            ROSBRIDGE_URL
+        );
+
+
+    rosSocket.onopen =
+        function() {
+
+            setGPSStatus(
+                '<span class="connected">' +
+                "✓ ROS 2 connected" +
+                "</span>"
+            );
+
+
+            /*
+             * Subscribe to rover GPS.
+             */
+
+            rosSocket.send(
+
+                JSON.stringify({
+
+                    op: "subscribe",
+
+                    topic: GPS_TOPIC,
+
+                    type: GPS_TYPE
+
+                })
+
+            );
+
+            rosSocket.send(
+                JSON.stringify({
+                    op: "advertise",
+                    id: "mission_advertise",
+                    topic: MISSION_TOPIC,
+                    type: MISSION_TYPE
+                })
+            );
+
+            missionAdvertised = true;
+
+            console.log(
+                "ROS 2 mission publisher ready:",
+                MISSION_TOPIC
+            );
+
+        };
+
+
+    rosSocket.onmessage =
+        function(event) {
+
+            try {
+
+                const message =
+                    JSON.parse(
+                        event.data
+                    );
+
+
+                if (
+                    message.op === "publish"
+                    &&
+                    message.topic === GPS_TOPIC
+                ) {
+
+                    processGPS(
+                        message.msg
+                    );
+
+                }
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Invalid ROS message:",
+                    error
+                );
+
+            }
+
+        };
+
+
+    rosSocket.onerror =
+        function() {
+
+            setGPSStatus(
+
+                '<span class="disconnected">' +
+
+                "✗ ROS 2 connection error" +
+
+                "</span><br>" +
+
+                "Expected: " +
+
+                ROSBRIDGE_URL
+
+            );
+
+        };
+
+
+    rosSocket.onclose =
+        function() {
+
+            setGPSStatus(
+
+                '<span class="disconnected">' +
+
+                "✗ ROS 2 disconnected" +
+
+                "</span>"
+
+            );
+
+
+            /*
+             * Retry connection.
+             */
+
+            setTimeout(
+                connectROS,
+                3000
+            );
+
+        };
+
+}
+
+
+/* ========================================================
+   GPS PROCESSING
+   ======================================================== */
+
+
+function processGPS(msg) {
+
+    const latitude =
+        Number(msg.latitude);
+
+    const longitude =
+        Number(msg.longitude);
+
+
+    if (
+        !Number.isFinite(latitude)
+        ||
+        !Number.isFinite(longitude)
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * ROS NavSatFix uses:
+     *
+     * latitude
+     * longitude
+     * altitude
+     *
+     * position_covariance
+     * status
+     */
+
+
+    /*
+     * GPS status.
+     */
+
+    let fixText =
+        "Unknown fix";
+
+
+    if (
+        msg.status
+        &&
+        msg.status.status >= 0
+    ) {
+
+        if (
+            msg.status.status >= 2
+        ) {
+
+            fixText =
+                "✓ 3D / GNSS fix";
+
+        }
+
+        else {
+
+            fixText =
+                "✓ GNSS fix";
+
+        }
+
+    }
+
+    else {
+
+        fixText =
+            "⚠ No valid fix";
+
+    }
+
+
+    roverPosition = {
+
+        latitude:
+            latitude,
+
+        longitude:
+            longitude,
+
+        altitude:
+            Number(msg.altitude) || 0,
+
+        fix:
+            fixText
+
+    };
+
+
+    /*
+     * Update rover marker.
+     */
+
+    updateRoverMarker();
+
+
+    /*
+     * Only automatically center the first
+     * valid rover position.
+     */
+
+    if (!roverCentered) {
+
+        map.setView(
+
+            [
+                latitude,
+                longitude
+            ],
+
+            18
+
+        );
+
+        roverCentered = true;
+
+    }
+
+
+    setGPSStatus(
+
+        '<span class="connected">' +
+
+        fixText +
+
+        "</span><br>" +
+
+        "Latitude: " +
+
+        latitude.toFixed(7) +
+
+        "<br>" +
+
+        "Longitude: " +
+
+        longitude.toFixed(7) +
+
+        "<br>" +
+
+        "Altitude: " +
+
+        roverPosition.altitude.toFixed(1) +
+
+        " m"
+
+    );
+
+}
+
+
+/* ========================================================
+   ROVER MARKER
+   ======================================================== */
+
+
+function updateRoverMarker() {
+
+    if (!roverPosition) {
+
+        return;
+
+    }
+
+
+    const position = [
+
+        roverPosition.latitude,
+
+        roverPosition.longitude
+
+    ];
+
+
+    if (!roverMarker) {
+
+        roverMarker =
+            L.marker(
+
+                position,
+
+                {
+
+                    title:
+                        "Rover GPS"
+
+                }
+
+            ).addTo(map);
+
+
+        roverMarker.bindTooltip(
+            "🚜 Rover",
+            {
+                permanent: false
+            }
+        );
+
+    }
+
+    else {
+
+        roverMarker.setLatLng(
+            position
+        );
+
+    }
+
+}
+
+
+/* ========================================================
+   CENTER ROVER
+   ======================================================== */
+
+
+document
+    .getElementById("centerRover")
+    .addEventListener(
+        "click",
+        function() {
+
+            if (!roverPosition) {
+
+                alert(
+                    "No rover GPS position received from ROS 2."
+                );
+
+                return;
+
+            }
+
+
+            map.setView(
+
+                [
+                    roverPosition.latitude,
+                    roverPosition.longitude
+                ],
+
+                18
+
+            );
+
+        }
+    );
+
+
+/* ========================================================
+   GPS STATUS
+   ======================================================== */
+
+
+function setGPSStatus(text) {
+
+    document.getElementById(
+        "gpsStatus"
+    ).innerHTML = text;
+
+}
+
+
+/* ========================================================
+   CLEAR PREVIEW
+   ======================================================== */
+
+
+function clearPreview() {
+
+    previewLines.forEach(
+
+        line =>
+            map.removeLayer(line)
+
+    );
+
+
+    previewMarkers.forEach(
+
+        marker =>
+            map.removeLayer(marker)
+
+    );
+
+
+    previewLines = [];
+
+    previewMarkers = [];
+
+}
+
+
+/* ========================================================
+   GPS → LOCAL METRIC COORDINATES
+   ======================================================== */
+
+
+/*
+ * We perform the coverage geometry in metres.
+ *
+ * The first field point becomes the local origin.
+ *
+ * x = east/west
+ * y = north/south
+ *
+ * This avoids doing the actual geometry in degrees.
+ */
+
+
+function gpsToLocal(
+    latitude,
+    longitude,
+    originLat,
+    originLon
+) {
+
+    const earthRadius =
+        6378137;
+
+
+    const latRad =
+        originLat *
+        Math.PI /
+        180;
+
+
+    const x =
+        (
+            longitude -
+            originLon
+        )
+        *
+        Math.cos(latRad)
+        *
+        Math.PI /
+        180
+        *
+        earthRadius;
+
+
+    const y =
+        (
+            latitude -
+            originLat
+        )
+        *
+        Math.PI /
+        180
+        *
+        earthRadius;
+
+
+    return {
+
+        x: x,
+
+        y: y
+
+    };
+
+}
+
+
+/*
+ * Local metres → GPS.
+ */
+
+function localToGPS(
+    x,
+    y,
+    originLat,
+    originLon
+) {
+
+    const earthRadius =
+        6378137;
+
+
+    const latRad =
+        originLat *
+        Math.PI /
+        180;
+
+
+    const latitude =
+        originLat +
+        (
+            y /
+            earthRadius
+        )
+        *
+        180 /
+        Math.PI;
+
+
+    const longitude =
+        originLon +
+        (
+            x /
+            (
+                earthRadius *
+                Math.cos(latRad)
+            )
+        )
+        *
+        180 /
+        Math.PI;
+
+
+    return [
+
+        latitude,
+
+        longitude
+
+    ];
+
+}
+
+
+/* ========================================================
+   POLYGON AREA / ORIENTATION
+   ======================================================== */
+
+
+function polygonSignedArea(
+    polygon
+) {
+
+    let area = 0;
+
+
+    for (
+        let i = 0;
+        i < polygon.length;
+        i++
+    ) {
+
+        const p1 =
+            polygon[i];
+
+        const p2 =
+            polygon[
+                (i + 1) %
+                polygon.length
+            ];
+
+
+        area +=
+            p1.x * p2.y -
+            p2.x * p1.y;
+
+    }
+
+
+    return area / 2;
+
+}
+
+
+/* ========================================================
+   HORIZONTAL SCANLINE INTERSECTION
+   ======================================================== */
+
+
+/*
+ * Given a Y coordinate in metres,
+ * find all portions of the polygon
+ * crossed by that horizontal line.
+ */
+
+function horizontalIntersections(
+    polygon,
+    y
+) {
+
+    const intersections = [];
+
+
+    for (
+        let i = 0;
+        i < polygon.length;
+        i++
+    ) {
+
+        const p1 =
+            polygon[i];
+
+        const p2 =
+            polygon[
+                (i + 1) %
+                polygon.length
+            ];
+
+
+        /*
+         * Ignore horizontal edges.
+         */
+
+        if (
+            Math.abs(
+                p1.y - p2.y
+            ) < 1e-9
+        ) {
+
+            continue;
+
+        }
+
+
+        /*
+         * Half-open edge test.
+         */
+
+        const crosses =
+            (
+                y >= Math.min(
+                    p1.y,
+                    p2.y
+                )
+            )
+            &&
+            (
+                y < Math.max(
+                    p1.y,
+                    p2.y
+                )
+            );
+
+
+        if (!crosses) {
+
+            continue;
+
+        }
+
+
+        const ratio =
+            (
+                y - p1.y
+            )
+            /
+            (
+                p2.y - p1.y
+            );
+
+
+        const x =
+            p1.x +
+            ratio *
+            (
+                p2.x -
+                p1.x
+            );
+
+
+        intersections.push(x);
+
+    }
+
+
+    intersections.sort(
+        (a, b) => a - b
+    );
+
+
+    const segments = [];
+
+
+    /*
+     * Even/odd pairing.
+     *
+     * x0-x1 = inside
+     * x2-x3 = inside
+     * etc.
+     */
+
+    for (
+        let i = 0;
+        i + 1 < intersections.length;
+        i += 2
+    ) {
+
+        segments.push({
+
+            x1:
+                intersections[i],
+
+            x2:
+                intersections[i + 1]
+
+        });
+
+    }
+
+
+    return segments;
+
+}
+
+
+/* ========================================================
+   UNIFORM POINT DISTRIBUTION
+   ======================================================== */
+
+
+/*
+ * This fixes the previous uneven spacing problem.
+ *
+ * We DO NOT force the final point to create
+ * a tiny leftover segment.
+ *
+ * Instead, the requested spacing is used to
+ * determine the number of intervals, and the
+ * entire segment is divided uniformly.
+ */
+
+
+function pointsAlongSegment(
+    x1,
+    x2,
+    y,
+    targetSpacing
+) {
+
+    const length =
+        Math.abs(
+            x2 - x1
+        );
+
+
+    if (
+        length < 0.001
+    ) {
+
+        return [];
+
+    }
+
+
+    /*
+     * Number of equal intervals.
+     */
+
+    const intervalCount =
+        Math.max(
+
+            1,
+
+            Math.round(
+                length /
+                targetSpacing
+            )
+
+        );
+
+
+    /*
+     * Actual uniform spacing.
+     */
+
+    const actualSpacing =
+        length /
+        intervalCount;
+
+
+    const direction =
+        x2 >= x1
+            ? 1
+            : -1;
+
+
+    const points = [];
+
+
+    for (
+        let i = 0;
+        i <= intervalCount;
+        i++
+    ) {
+
+        const x =
+            x1 +
+            direction *
+            i *
+            actualSpacing;
+
+
+        points.push({
+
+            x: x,
+
+            y: y
+
+        });
+
+    }
+
+
+    return points;
+
+}
+
+
+/* ========================================================
+   FIND FIELD BOUNDS
+   ======================================================== */
+
+
+function getPolygonBounds(
+    polygon
+) {
+
+    let minX = Infinity;
+
+    let maxX = -Infinity;
+
+    let minY = Infinity;
+
+    let maxY = -Infinity;
+
+
+    polygon.forEach(
+
+        p => {
+
+            minX =
+                Math.min(
+                    minX,
+                    p.x
+                );
+
+            maxX =
+                Math.max(
+                    maxX,
+                    p.x
+                );
+
+            minY =
+                Math.min(
+                    minY,
+                    p.y
+                );
+
+            maxY =
+                Math.max(
+                    maxY,
+                    p.y
+                );
+
+        }
+
+    );
+
+
+    return {
+
+        minX,
+
+        maxX,
+
+        minY,
+
+        maxY
+
+    };
+
+}
+
+
+/* ========================================================
+   COVERAGE PATH GENERATOR
+   ======================================================== */
+
+
+function generateCoveragePath(
+    polygon,
+    pointSpacing,
+    lineSpacing
+) {
+
+    const bounds =
+        getPolygonBounds(
+            polygon
+        );
+
+
+    const waypoints = [];
+
+    const lines = [];
+
+
+    /*
+     * Start half a line-spacing inside
+     * the boundary.
+     */
+
+    let y =
+        bounds.minY +
+        lineSpacing / 2;
+
+
+    let lineIndex = 0;
+
+
+    while (
+        y <= bounds.maxY
+    ) {
+
+        let segments =
+            horizontalIntersections(
+                polygon,
+                y
+            );
+
+
+        /*
+         * Ignore tiny intersections.
+         */
+
+        segments =
+            segments.filter(
+
+                segment =>
+                    Math.abs(
+                        segment.x2 -
+                        segment.x1
+                    ) > 0.01
+
+            );
+
+
+        /*
+         * Normal direction.
+         */
+
+        if (
+            lineIndex % 2 === 0
+        ) {
+
+            /*
+             * left → right
+             */
+
+        }
+
+        else {
+
+            /*
+             * right → left
+             */
+
+            segments.reverse();
+
+        }
+
+
+        const completeLine = [];
+
+
+        segments.forEach(
+
+            segment => {
+
+                let x1 =
+                    segment.x1;
+
+                let x2 =
+                    segment.x2;
+
+
+                if (
+                    lineIndex % 2 === 1
+                ) {
+
+                    const temp = x1;
+
+                    x1 = x2;
+
+                    x2 = temp;
+
+                }
+
+
+                const points =
+                    pointsAlongSegment(
+
+                        x1,
+
+                        x2,
+
+                        y,
+
+                        pointSpacing
+
+                    );
+
+
+                points.forEach(
+
+                    point => {
+
+                        completeLine.push(
+                            point
+                        );
+
+                        waypoints.push(
+                            point
+                        );
+
+                    }
+
+                );
+
+            }
+
+        );
+
+
+        if (
+            completeLine.length > 0
+        ) {
+
+            lines.push(
+                completeLine
+            );
+
+            lineIndex++;
+
+        }
+
+
+        y += lineSpacing;
+
+    }
+
+
+    return {
+
+        lines:
+
+            lines,
+
+        waypoints:
+
+            waypoints
+
+    };
+
+}
+
+
+/* ========================================================
+   LIVE PREVIEW
+   ======================================================== */
+
+
+function updatePreview() {
+
+    clearPreview();
+
+
+    if (
+        fieldPoints.length < 3
+    ) {
+
+        document.getElementById(
+            "missionStatus"
+        ).innerHTML =
+
+            "Field points: " +
+            fieldPoints.length +
+            "<br><br>" +
+
+            "Add at least " +
+            "<b>3 points</b> " +
+            "to preview the route.";
+
+        return;
+
+    }
+
+
+    const pointSpacing =
+        parseFloat(
+
+            document.getElementById(
+                "pointSpacing"
+            ).value
+
+        );
+
+
+    const lineSpacing =
+        parseFloat(
+
+            document.getElementById(
+                "lineSpacing"
+            ).value
+
+        );
+
+
+    if (
+        !Number.isFinite(
+            pointSpacing
+        )
+        ||
+        !Number.isFinite(
+            lineSpacing
+        )
+        ||
+        pointSpacing <= 0
+        ||
+        lineSpacing <= 0
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Use first field point as local origin.
+     */
+
+    const originLat =
+        fieldPoints[0][0];
+
+    const originLon =
+        fieldPoints[0][1];
+
+
+    /*
+     * Convert field to metres.
+     */
+
+    const polygon =
+
+        fieldPoints.map(
+
+            point =>
+
+                gpsToLocal(
+
+                    point[0],
+
+                    point[1],
+
+                    originLat,
+
+                    originLon
+
+                )
+
+        );
+
+
+    /*
+     * Generate coverage.
+     */
+
+    const result =
+        generateCoveragePath(
+
+            polygon,
+
+            pointSpacing,
+
+            lineSpacing
+
+        );
+
+
+    /*
+     * Draw coverage lines.
+     */
+
+    result.lines.forEach(
+
+        line => {
+
+            const gpsPoints =
+                line.map(
+
+                    point =>
+
+                        localToGPS(
+
+                            point.x,
+
+                            point.y,
+
+                            originLat,
+
+                            originLon
+
+                        )
+
+                );
+
+
+            const leafletLine =
+                L.polyline(
+
+                    gpsPoints,
+
+                    {
+
+                        weight: 2,
+
+                        opacity: 0.9
+
+                    }
+
+                ).addTo(map);
+
+
+            previewLines.push(
+                leafletLine
+            );
+
+
+            /*
+             * Draw every waypoint.
+             */
+
+            gpsPoints.forEach(
+
+                gpsPoint => {
+
+                    const marker =
+                        L.circleMarker(
+
+                            gpsPoint,
+
+                            {
+
+                                radius: 3,
+
+                                weight: 1,
+
+                                fillOpacity: 1
+
+                            }
+
+                        ).addTo(map);
+
+
+                    previewMarkers.push(
+                        marker
+                    );
+
+                }
+
+            );
+
+        }
+
+    );
+
+
+    /*
+     * Mission information.
+     */
+
+    document.getElementById(
+        "missionStatus"
+    ).innerHTML =
+
+        "<b>Live Route Preview</b><br><br>" +
+
+        "Field points: " +
+        fieldPoints.length +
+        "<br>" +
+
+        "Point spacing: " +
+        pointSpacing.toFixed(1) +
+        " m<br>" +
+
+        "Line spacing: " +
+        lineSpacing.toFixed(1) +
+        " m<br>" +
+
+        "Coverage lines: " +
+        result.lines.length +
+        "<br>" +
+
+        "Waypoints: " +
+        result.waypoints.length +
+        "<br><br>" +
+
+        "✓ Route clipped to field";
+
+
+}
+
+
+/* ========================================================
+   LIVE SPACING UPDATES
+   ======================================================== */
+
+
+document
+    .getElementById(
+        "pointSpacing"
+    )
+    .addEventListener(
+        "input",
+        updatePreview
+    );
+
+
+document
+    .getElementById(
+        "lineSpacing"
+    )
+    .addEventListener(
+        "input",
+        updatePreview
+    );
+
+/* ========================================================
+   PUBLISH MISSION TO ROS 2
+   ======================================================== */
+
+function publishMissionToROS(mission) {
+
+    if (
+        !rosSocket ||
+        rosSocket.readyState !== WebSocket.OPEN
+    ) {
+
+        console.error(
+            "ROS 2 WebSocket is not connected."
+        );
+
+        return false;
+    }
+
+    if (!missionAdvertised) {
+
+        console.error(
+            "Mission topic has not been advertised."
+        );
+
+        return false;
+    }
+
+
+    /*
+     * Convert our browser mission into
+     * rover_interfaces/msg/Mission.
+     */
+
+    const rosMission = {
+
+        mission_id:
+            mission.mission_id,
+
+        waypoints:
+            mission.waypoints.map(
+                function(gpsPoint) {
+
+                    return {
+
+                        latitude:
+                            gpsPoint[0],
+
+                        longitude:
+                            gpsPoint[1],
+
+                        acceptance_radius:
+                            1.0,
+
+                        action:
+                            "sample"
+
+                    };
+
+                }
+            )
+
+    };
+
+
+    /*
+     * Send mission through rosbridge.
+     */
+
+    rosSocket.send(
+        JSON.stringify({
+
+            op: "publish",
+
+            id: "mission_publish",
+
+            topic: MISSION_TOPIC,
+
+            msg: rosMission
+
+        })
+    );
+
+
+    console.log(
+        "MISSION PUBLISHED TO ROS 2"
+    );
+
+    console.log(
+        rosMission
+    );
+
+
+    return true;
+}
+
+/* ========================================================
+   GENERATE MISSION
+   ======================================================== */
+
+
+document
+    .getElementById(
+        "generate"
+    )
+    .addEventListener(
+        "click",
+        function() {
+
+            if (
+                fieldPoints.length < 3
+            ) {
+
+                alert(
+                    "Please define a field with at least 3 points."
+                );
+
+                return;
+
+            }
+
+
+            const pointSpacing =
+                parseFloat(
+
+                    document.getElementById(
+                        "pointSpacing"
+                    ).value
+
+                );
+
+
+            const lineSpacing =
+                parseFloat(
+
+                    document.getElementById(
+                        "lineSpacing"
+                    ).value
+
+                );
+
+
+            /*
+             * Mission object.
+             *
+             * This is what we'll eventually
+             * send to ROS 2.
+             */
+
+            const mission = {
+
+                mission_id:
+                    "mission_" +
+                    Date.now(),
+
+                field_boundary:
+                    fieldPoints,
+
+                point_spacing_m:
+                    pointSpacing,
+
+                line_spacing_m:
+                    lineSpacing
+
+            };
+
+
+            console.log(
+                "MISSION:",
+                mission
+            );
+
+
+            /*
+             * Generate actual GPS waypoints
+             * for now.
+             */
+
+            const originLat =
+                fieldPoints[0][0];
+
+            const originLon =
+                fieldPoints[0][1];
+
+
+            const polygon =
+                fieldPoints.map(
+
+                    point =>
+
+                        gpsToLocal(
+
+                            point[0],
+
+                            point[1],
+
+                            originLat,
+
+                            originLon
+
+                        )
+
+                );
+
+
+            const result =
+                generateCoveragePath(
+
+                    polygon,
+
+                    pointSpacing,
+
+                    lineSpacing
+
+                );
+
+
+            mission.waypoints =
+                result.waypoints.map(
+
+                    point =>
+
+                        localToGPS(
+
+                            point.x,
+
+                            point.y,
+
+                            originLat,
+
+                            originLon
+
+                        )
+
+                );
+
+            const published =
+                publishMissionToROS(
+                    mission
+                );
+
+
+            console.log(
+                "GPS WAYPOINTS:",
+                mission.waypoints
+            );
+
+
+            if (published) {
+
+                document.getElementById(
+                    "missionStatus"
+                ).innerHTML =
+
+                    "<b>Mission Published ✓</b><br><br>" +
+
+                    "Mission ID: " +
+                    mission.mission_id +
+
+                    "<br>" +
+
+                    "Waypoints: " +
+                    mission.waypoints.length +
+
+                    "<br>" +
+
+                    "Point spacing: " +
+                    pointSpacing.toFixed(1) +
+                    " m<br>" +
+
+                    "Line spacing: " +
+                    lineSpacing.toFixed(1) +
+                    " m<br><br>" +
+
+                    '<span class="connected">' +
+                    "✓ Published to ROS 2 /mission" +
+                    "</span>";
+
+            }
+            else {
+
+                document.getElementById(
+                    "missionStatus"
+                ).innerHTML =
+
+                    '<span class="disconnected">' +
+                    "✗ Mission was not published" +
+                    "</span><br><br>" +
+
+                    "Check the ROS 2 WebSocket connection.";
+
+            }
+
+
+        }
+    );
+
+
+/* ========================================================
+   START ROS CONNECTION
+   ======================================================== */
+
+
+connectROS();
+
+
+</script>
+
+</body>
+
+</html>
