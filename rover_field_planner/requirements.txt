@@ -1,0 +1,6 @@
+streamlit>=1.38
+streamlit-folium>=0.22
+folium>=0.17
+streamlit-geolocation>=0.0.10
+websocket-client>=1.8
+shapely>=2.0
