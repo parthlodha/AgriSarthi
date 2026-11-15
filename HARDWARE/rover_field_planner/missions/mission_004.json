@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "mission_id": "004",
+  "mission_name": "field_mission_004",
+  "rover_id": "ROVER_01",
+  "created_at": "2026-11-08T18:55:57Z",
+  "coordinate_system": "WGS84",
+  "coordinate_order": "latitude_longitude",
+  "boundary": [
+    {
+      "latitude": 19.8839937,
+      "longitude": 75.3494954
+    },
+    {
+      "latitude": 19.8840138,
+      "longitude": 75.3503537
+    },
+    {
+      "latitude": 19.8829646,
+      "longitude": 75.3501928
+    },
+    {
+      "latitude": 19.8833177,
+      "longitude": 75.3493774
+    }
+  ],
+  "spacing": {
+    "between_lines_m": 15.0,
+    "between_points_m": 15.0
+  },
+  "waypoint_count": 50,
+  "waypoints": [
+    {
+      "id": 1,
+      "latitude": 19.8832866,
+      "longitude": 75.3494491
+    },
+    {
+      "id": 2,
+      "latitude": 19.8834215,
+      "longitude": 75.3494491
+    },
+    {
+      "id": 3,
+      "latitude": 19.8835564,
+      "longitude": 75.3494491
+    },
+    {
+      "id": 4,
+      "latitude": 19.8836913,
+      "longitude": 75.3494491
+    },
+    {
+      "id": 5,
+      "latitude": 19.8837286,
+      "longitude": 75.3494491
+    },
+    {
+      "id": 6,
+      "latitude": 19.883996,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 7,
+      "latitude": 19.8838611,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 8,
+      "latitude": 19.8837262,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 9,
+      "latitude": 19.8835913,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 10,
+      "latitude": 19.8834564,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 11,
+      "latitude": 19.8833215,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 12,
+      "latitude": 19.8832245,
+      "longitude": 75.3495926
+    },
+    {
+      "id": 13,
+      "latitude": 19.8831624,
+      "longitude": 75.349736
+    },
+    {
+      "id": 14,
+      "latitude": 19.8832973,
+      "longitude": 75.349736
+    },
+    {
+      "id": 15,
+      "latitude": 19.8834322,
+      "longitude": 75.349736
+    },
+    {
+      "id": 16,
+      "latitude": 19.8835671,
+      "longitude": 75.349736
+    },
+    {
+      "id": 17,
+      "latitude": 19.883702,
+      "longitude": 75.349736
+    },
+    {
+      "id": 18,
+      "latitude": 19.8838369,
+      "longitude": 75.349736
+    },
+    {
+      "id": 19,
+      "latitude": 19.8839718,
+      "longitude": 75.349736
+    },
+    {
+      "id": 20,
+      "latitude": 19.8839993,
+      "longitude": 75.349736
+    },
+    {
+      "id": 21,
+      "latitude": 19.8840027,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 22,
+      "latitude": 19.8838678,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 23,
+      "latitude": 19.8837329,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 24,
+      "latitude": 19.883598,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 25,
+      "latitude": 19.8834631,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 26,
+      "latitude": 19.8833282,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 27,
+      "latitude": 19.8831933,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 28,
+      "latitude": 19.8831003,
+      "longitude": 75.3498795
+    },
+    {
+      "id": 29,
+      "latitude": 19.8830382,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 30,
+      "latitude": 19.8831731,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 31,
+      "latitude": 19.883308,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 32,
+      "latitude": 19.8834429,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 33,
+      "latitude": 19.8835778,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 34,
+      "latitude": 19.8837127,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 35,
+      "latitude": 19.8838476,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 36,
+      "latitude": 19.8839825,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 37,
+      "latitude": 19.8840061,
+      "longitude": 75.3500229
+    },
+    {
+      "id": 38,
+      "latitude": 19.8840094,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 39,
+      "latitude": 19.8838745,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 40,
+      "latitude": 19.8837396,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 41,
+      "latitude": 19.8836047,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 42,
+      "latitude": 19.8834698,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 43,
+      "latitude": 19.8833349,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 44,
+      "latitude": 19.8832,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 45,
+      "latitude": 19.8830651,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 46,
+      "latitude": 19.882976,
+      "longitude": 75.3501664
+    },
+    {
+      "id": 47,
+      "latitude": 19.8837277,
+      "longitude": 75.3503098
+    },
+    {
+      "id": 48,
+      "latitude": 19.8838626,
+      "longitude": 75.3503098
+    },
+    {
+      "id": 49,
+      "latitude": 19.8839975,
+      "longitude": 75.3503098
+    },
+    {
+      "id": 50,
+      "latitude": 19.8840128,
+      "longitude": 75.3503098
+    }
+  ]
+}

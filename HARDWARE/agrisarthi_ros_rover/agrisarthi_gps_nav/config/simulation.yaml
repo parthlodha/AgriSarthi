@@ -1,0 +1,90 @@
+# Laptop-only SITL: no physical UDP, UART, GPIO, GPS, motor, servo or soil sensor access.
+gps_waypoint_navigator:
+  ros__parameters:
+    mission_topic: /mission/waypoints_json
+    mission_file: /tmp/agrisarthi_sitl/missions/current_mission.json
+    start_topic: /mission/navigation_start
+    gps_topic: /sim/gps/fix
+    heading_topic: /sim/heading_deg
+    estop_topic: /cmd/estop
+    status_topic: /rover/nav_status
+    enable_esp32_link: true
+    esp32_transport: ros_sim
+    sim_esp32_command_topic: /sim/esp32/command
+    sim_esp32_feedback_topic: /sim/esp32/feedback
+    feedback_topic: /sim/esp32/feedback
+    command_rate_hz: 20.0
+    communication_timeout_s: 1.0
+    gps_timeout_s: 1.0
+    heading_timeout_s: 1.0
+    max_gps_accuracy_m: 10.0
+    require_gps_covariance: false
+    waypoint_tolerance_m: 0.65
+    max_waypoints: 5000
+    max_linear_speed: 0.35
+    max_angular_speed: 0.65
+    heading_kp: 0.012
+    turn_in_place_error_deg: 55.0
+    max_heading_error_for_full_speed_deg: 35.0
+    minimum_speed_scale: 0.2
+    slow_down_distance_m: 3.0
+    return_home: true
+
+mission_sampling_manager:
+  ros__parameters:
+    mission_topic: /mission/waypoints_json
+    start_topic: /mission/start
+    navigation_start_topic: /mission/navigation_start
+    navigation_complete_topic: /mission/waypoint_complete
+    navigation_status_topic: /rover/nav_status
+    gps_topic: /sim/gps/fix
+    probe_command_topic: /probe/command
+    probe_status_topic: /probe/status
+    sampling_status_topic: /mission/sampling_status
+    recovery_topic: /mission/sampling_recovery
+    query_topic: /mission/query
+    status_response_topic: /mission/status_response
+    data_response_topic: /mission/data_response
+    command_velocity_topic: /cmd_vel
+    rover_id: SITL_ROVER
+    mission_file: /tmp/agrisarthi_sitl/missions/current_mission.json
+    home_latitude: 37.4219999
+    home_longitude: -122.0840575
+    data_directory: /tmp/agrisarthi_sitl/data
+    sensor_mode: simulation
+    sensor_port: /dev/DO_NOT_OPEN_IN_SITL
+    sensor_baudrate: 4800
+    sensor_slave_id: 1
+    sensor_timeout_s: 1.0
+    sensor_retry_count: 1
+    sample_retries: 2
+    sim_sensor_fail_attempts: 0
+    sim_sensor_fault_topic: /sim/soil/faults
+    actuator_timeout_s: 3.0
+    probe_ack_retry_s: 0.5
+    probe_ack_retries: 3
+    gps_timeout_s: 1.0
+    stop_tolerance: 0.001
+
+simulated_esp32:
+  ros__parameters:
+    command_topic: /sim/esp32/command
+    feedback_topic: /sim/esp32/feedback
+    fault_topic: /sim/esp32/faults
+    probe_motion_duration_s: 0.15
+    motor_watchdog_s: 0.7
+    fail_retractions: 0
+    duplicate_acknowledgements: true
+
+simulated_world:
+  ros__parameters:
+    gps_topic: /sim/gps/fix
+    heading_topic: /sim/heading_deg
+    feedback_topic: /sim/esp32/feedback
+    fault_topic: /sim/world/faults
+    home_latitude: 37.4219999
+    home_longitude: -122.0840575
+    initial_heading_deg: 0.0
+    publish_rate_hz: 20.0
+    gps_loss_after_s: 0.0
+    gps_covariance_m2: 0.04
