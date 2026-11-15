@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "mission_id": "001",
+  "mission_name": "field_mission_001",
+  "rover_id": "ROVER_01",
+  "created_at": "2026-10-28T18:57:18Z",
+  "coordinate_system": "WGS84",
+  "coordinate_order": "latitude_longitude",
+  "boundary": [
+    {
+      "latitude": 19.1269969,
+      "longitude": 72.8460771
+    },
+    {
+      "latitude": 19.1267866,
+      "longitude": 72.8462568
+    },
+    {
+      "latitude": 19.1266295,
+      "longitude": 72.8460073
+    },
+    {
+      "latitude": 19.1268423,
+      "longitude": 72.845782
+    },
+    {
+      "latitude": 19.1269969,
+      "longitude": 72.8460771
+    }
+  ],
+  "spacing": {
+    "between_lines_m": 14.0,
+    "between_points_m": 12.5
+  },
+  "waypoint_count": 12,
+  "waypoints": [
+    {
+      "id": 1,
+      "latitude": 19.1267794,
+      "longitude": 72.8458486
+    },
+    {
+      "id": 2,
+      "latitude": 19.1268772,
+      "longitude": 72.8458486
+    },
+    {
+      "id": 3,
+      "latitude": 19.126947,
+      "longitude": 72.8459819
+    },
+    {
+      "id": 4,
+      "latitude": 19.1268346,
+      "longitude": 72.8459819
+    },
+    {
+      "id": 5,
+      "latitude": 19.1267222,
+      "longitude": 72.8459819
+    },
+    {
+      "id": 6,
+      "latitude": 19.1266535,
+      "longitude": 72.8459819
+    },
+    {
+      "id": 7,
+      "latitude": 19.1266974,
+      "longitude": 72.8461152
+    },
+    {
+      "id": 8,
+      "latitude": 19.1268098,
+      "longitude": 72.8461152
+    },
+    {
+      "id": 9,
+      "latitude": 19.1269222,
+      "longitude": 72.8461152
+    },
+    {
+      "id": 10,
+      "latitude": 19.1269524,
+      "longitude": 72.8461152
+    },
+    {
+      "id": 11,
+      "latitude": 19.1267964,
+      "longitude": 72.8462484
+    },
+    {
+      "id": 12,
+      "latitude": 19.1267813,
+      "longitude": 72.8462484
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agrisarthi.local/schemas/mission-data.schema.json",
+  "title": "Agrisarthi mission soil results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rover_id", "mission_id", "home_point", "records"],
+  "properties": {
+    "rover_id": {"type": "string", "minLength": 1},
+    "mission_id": {"type": "string", "minLength": 1},
+    "home_point": {"$ref": "#/$defs/gps"},
+    "records": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/record"}
+    }
+  },
+  "$defs": {
+    "gps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latitude", "longitude"],
+      "properties": {
+        "latitude": {"type": "number", "minimum": -90, "maximum": 90},
+        "longitude": {"type": "number", "minimum": -180, "maximum": 180}
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["waypoint_id", "timestamp", "gps", "soil"],
+      "properties": {
+        "waypoint_id": {"oneOf": [{"type": "integer"}, {"type": "string", "minLength": 1}]},
+        "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "gps": {"$ref": "#/$defs/gps"},
+        "soil": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["nitrogen", "phosphorus", "potassium", "ph", "moisture", "temperature", "ec"],
+          "properties": {
+            "nitrogen": {"type": "number"},
+            "phosphorus": {"type": "number"},
+            "potassium": {"type": "number"},
+            "ph": {"type": "number", "minimum": 0, "maximum": 14},
+            "moisture": {"type": "number", "minimum": 0, "maximum": 100},
+            "temperature": {"type": "number"},
+            "ec": {"type": "number"}
+          }
+        }
+      }
+    }
+  }
+}

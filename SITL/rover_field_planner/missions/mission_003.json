@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "mission_id": "003",
+  "mission_name": "field_mission_003",
+  "rover_id": "ROVER_01",
+  "created_at": "2026-10-29T07:25:52Z",
+  "coordinate_system": "WGS84",
+  "coordinate_order": "latitude_longitude",
+  "boundary": [
+    {
+      "latitude": 19.1269437,
+      "longitude": 72.8462541
+    },
+    {
+      "latitude": 19.1269133,
+      "longitude": 72.8467369
+    },
+    {
+      "latitude": 19.1262443,
+      "longitude": 72.8466833
+    },
+    {
+      "latitude": 19.1262949,
+      "longitude": 72.845943
+    },
+    {
+      "latitude": 19.1267207,
+      "longitude": 72.8458679
+    }
+  ],
+  "spacing": {
+    "between_lines_m": 20.0,
+    "between_points_m": 50.0
+  },
+  "waypoint_count": 14,
+  "waypoints": [
+    {
+      "id": 1,
+      "latitude": 19.1262935,
+      "longitude": 72.8459631
+    },
+    {
+      "id": 2,
+      "latitude": 19.1267432,
+      "longitude": 72.8459631
+    },
+    {
+      "id": 3,
+      "latitude": 19.1267757,
+      "longitude": 72.8459631
+    },
+    {
+      "id": 4,
+      "latitude": 19.1268856,
+      "longitude": 72.8461535
+    },
+    {
+      "id": 5,
+      "latitude": 19.1264359,
+      "longitude": 72.8461535
+    },
+    {
+      "id": 6,
+      "latitude": 19.1262805,
+      "longitude": 72.8461535
+    },
+    {
+      "id": 7,
+      "latitude": 19.1262675,
+      "longitude": 72.8463438
+    },
+    {
+      "id": 8,
+      "latitude": 19.1267172,
+      "longitude": 72.8463438
+    },
+    {
+      "id": 9,
+      "latitude": 19.126938,
+      "longitude": 72.8463438
+    },
+    {
+      "id": 10,
+      "latitude": 19.1269261,
+      "longitude": 72.8465342
+    },
+    {
+      "id": 11,
+      "latitude": 19.1264764,
+      "longitude": 72.8465342
+    },
+    {
+      "id": 12,
+      "latitude": 19.1262545,
+      "longitude": 72.8465342
+    },
+    {
+      "id": 13,
+      "latitude": 19.1267595,
+      "longitude": 72.8467246
+    },
+    {
+      "id": 14,
+      "latitude": 19.1269141,
+      "longitude": 72.8467246
+    }
+  ]
+}
