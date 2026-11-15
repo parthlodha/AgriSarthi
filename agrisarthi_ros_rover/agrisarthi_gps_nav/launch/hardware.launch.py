@@ -7,6 +7,10 @@ import os
 def generate_launch_description():
     config = os.path.join(get_package_share_directory("agrisarthi_gps_nav"), "config", "hardware.yaml")
     return LaunchDescription([
+        Node(package="agrisarthi_gps_nav", executable="nmea_gps_driver",
+             name="nmea_gps_driver", parameters=[config], output="screen"),
+        Node(package="agrisarthi_gps_nav", executable="heading_node",
+             name="heading_node", parameters=[config], output="screen"),
         Node(package="agrisarthi_gps_nav", executable="gps_waypoint_navigator",
              name="gps_waypoint_navigator", parameters=[config], output="screen"),
         Node(package="agrisarthi_gps_nav", executable="mission_sampling_manager",

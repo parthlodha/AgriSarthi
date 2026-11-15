@@ -21,6 +21,8 @@ setup(
     entry_points={'console_scripts': [
         'gps_waypoint_navigator = agrisarthi_gps_nav.gps_waypoint_navigator:main',
         'mission_sampling_manager = agrisarthi_gps_nav.mission_sampling_manager:main',
+        'nmea_gps_driver = agrisarthi_gps_nav.nmea_gps_driver:main',
+        'heading_node = agrisarthi_gps_nav.heading_node:main',
         'simulated_esp32 = agrisarthi_gps_nav.simulated_esp32:simulated_esp32_main',
         'simulated_world = agrisarthi_gps_nav.simulated_world:simulated_world_main',
     ]},

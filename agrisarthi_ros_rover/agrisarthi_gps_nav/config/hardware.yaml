@@ -1,3 +1,7 @@
+# Real Hardware Configuration for Agrisarthi Rover on Raspberry Pi 5
+# WARNING: Before physical field operation, configure surveyed home coordinates,
+# verified serial ports (/dev/serial/by-id/...), and confirmed Wi-Fi/IP settings.
+
 gps_waypoint_navigator:
   ros__parameters:
     mission_topic: /mission/waypoints_json
@@ -8,6 +12,7 @@ gps_waypoint_navigator:
     estop_topic: /cmd/estop
     status_topic: /rover/nav_status
     enable_esp32_link: true
+    esp32_transport: udp
     command_topic: /cmd_vel
     esp32_ip: 192.168.1.50
     esp32_port: 5005
@@ -26,6 +31,7 @@ gps_waypoint_navigator:
     max_heading_error_for_full_speed_deg: 35.0
     minimum_speed_scale: 0.2
     slow_down_distance_m: 3.0
+    return_home: true
 
 mission_sampling_manager:
   ros__parameters:
@@ -46,9 +52,11 @@ mission_sampling_manager:
     rover_id: ROVER_01
     mission_file: ~/agrisarthi_ws/missions/current_mission.json
     # Configure these to the surveyed launch/home coordinate before operation.
+    # Placeholder values (-999.0) deliberately block un-surveyed field missions.
     home_latitude: -999.0
     home_longitude: -999.0
     data_directory: ~/agrisarthi_ws/missions/data
+    sensor_mode: hardware
     sensor_port: /dev/ttyUSB0
     sensor_baudrate: 4800
     sensor_slave_id: 1
@@ -56,5 +64,33 @@ mission_sampling_manager:
     sensor_retry_count: 3
     sample_retries: 2
     actuator_timeout_s: 30.0
+    probe_ack_retry_s: 2.0
+    probe_ack_retries: 3
     gps_timeout_s: 2.0
     stop_tolerance: 0.001
+
+nmea_gps_driver:
+  ros__parameters:
+    port: /dev/ttyAMA0
+    baudrate: 9600
+    timeout_s: 1.0
+    gps_topic: /gps/fix
+    frame_id: gps_link
+    hdop_scale_m: 2.5
+    default_variance_m2: 25.0
+    poll_interval_s: 0.05
+
+heading_node:
+  ros__parameters:
+    # Physical magnetometer/IMU is currently unavailable.
+    # When false, heading_node does NOT publish to /heading_deg, safely latching
+    # the navigator in WAITING_FOR_SENSORS until physical compass is connected.
+    enabled: false
+    heading_topic: /heading_deg
+    device_type: generic_serial
+    port: /dev/ttyUSB1
+    baudrate: 9600
+    timeout_s: 1.0
+    publish_rate_hz: 10.0
+    magnetic_declination_deg: 0.0
+    calibration_offset_deg: 0.0
