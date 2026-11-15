@@ -1,0 +1,60 @@
+gps_waypoint_navigator:
+  ros__parameters:
+    mission_topic: /mission/waypoints_json
+    mission_file: ~/agrisarthi_ws/missions/current_mission.json
+    start_topic: /mission/navigation_start
+    gps_topic: /gps/fix
+    heading_topic: /heading_deg
+    estop_topic: /cmd/estop
+    status_topic: /rover/nav_status
+    enable_esp32_link: true
+    command_topic: /cmd_vel
+    esp32_ip: 192.168.1.50
+    esp32_port: 5005
+    command_rate_hz: 10.0
+    communication_timeout_s: 0.6
+    gps_timeout_s: 2.0
+    heading_timeout_s: 1.0
+    max_gps_accuracy_m: 10.0
+    require_gps_covariance: false
+    waypoint_tolerance_m: 1.5
+    max_waypoints: 5000
+    max_linear_speed: 0.18
+    max_angular_speed: 0.35
+    heading_kp: 0.012
+    turn_in_place_error_deg: 55.0
+    max_heading_error_for_full_speed_deg: 35.0
+    minimum_speed_scale: 0.2
+    slow_down_distance_m: 3.0
+
+mission_sampling_manager:
+  ros__parameters:
+    mission_topic: /mission/waypoints_json
+    start_topic: /mission/start
+    navigation_start_topic: /mission/navigation_start
+    navigation_complete_topic: /mission/waypoint_complete
+    navigation_status_topic: /rover/nav_status
+    gps_topic: /gps/fix
+    probe_command_topic: /probe/command
+    probe_status_topic: /probe/status
+    sampling_status_topic: /mission/sampling_status
+    recovery_topic: /mission/sampling_recovery
+    query_topic: /mission/query
+    status_response_topic: /mission/status_response
+    data_response_topic: /mission/data_response
+    command_velocity_topic: /cmd_vel
+    rover_id: ROVER_01
+    mission_file: ~/agrisarthi_ws/missions/current_mission.json
+    # Configure these to the surveyed launch/home coordinate before operation.
+    home_latitude: -999.0
+    home_longitude: -999.0
+    data_directory: ~/agrisarthi_ws/missions/data
+    sensor_port: /dev/ttyUSB0
+    sensor_baudrate: 4800
+    sensor_slave_id: 1
+    sensor_timeout_s: 1.0
+    sensor_retry_count: 3
+    sample_retries: 2
+    actuator_timeout_s: 30.0
+    gps_timeout_s: 2.0
+    stop_tolerance: 0.001

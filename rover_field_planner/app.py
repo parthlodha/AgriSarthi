@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +14,7 @@ import folium
 import streamlit as st
 from streamlit_folium import st_folium
 from shapely.geometry import LineString, Polygon, MultiLineString, GeometryCollection
+from sitl_mission import make_sitl_four_waypoint_mission
 
 st.set_page_config(page_title="Rover Field Planner", page_icon="🌱", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""
@@ -27,6 +30,11 @@ div.stButton>button,div.stDownloadButton>button{min-height:3rem;font-size:1.02re
 
 MISSIONS_DIR = Path("missions")
 MISSIONS_DIR.mkdir(exist_ok=True)
+DEFAULT_ROS_URL = os.environ.get("AGRISARTHI_ROSBRIDGE_URL", "ws://192.168.1.12:9090")
+DEFAULT_GPS_TOPIC = os.environ.get("AGRISARTHI_GPS_TOPIC", "/gps/fix")
+SITL_DEMO_ENABLED = os.environ.get("AGRISARTHI_SITL_DEMO", "0").lower() in ("1", "true", "yes")
+SITL_HOME_LAT = float(os.environ.get("AGRISARTHI_SITL_HOME_LAT", "37.4219999"))
+SITL_HOME_LON = float(os.environ.get("AGRISARTHI_SITL_HOME_LON", "-122.0840575"))
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -80,9 +88,7 @@ def generate_lawnmower(boundary, line_spacing_m, point_spacing_m):
     lon0 = sum(p["longitude"] for p in boundary) / len(boundary)
     xy = [local_xy(p["latitude"], p["longitude"], lat0, lon0) for p in boundary]
     poly = Polygon(xy)
-    if not poly.is_valid:
-        poly = poly.buffer(0)
-    if poly.is_empty or not poly.is_valid or poly.area < 1:
+    if not poly.is_valid or poly.is_empty or poly.area < 1:
         raise ValueError("The boundary is invalid or too small. Redraw the field boundary.")
     minx, miny, maxx, maxy = poly.bounds
     # Passes are vertical in local coordinates (roughly north-south).
@@ -141,6 +147,7 @@ def publish_ros(url, topic, payload):
         ws = websocket.create_connection(url, timeout=5)
         ws.send(json.dumps({"op": "advertise", "topic": topic, "type": "std_msgs/msg/String"}))
         ws.send(json.dumps({"op": "publish", "topic": topic, "msg": {"data": payload}}))
+        time.sleep(0.1)  # Let rosbridge dispatch the publish before closing this short-lived socket.
         return True, "Mission sent to the ROS bridge. This confirms transmission only, not rover acceptance."
     except Exception as e:
         return False, f"Could not reach ROS bridge: {type(e).__name__}: {e}"
@@ -159,6 +166,7 @@ def publish_ros_bool(url, topic, value):
         ws = websocket.create_connection(url, timeout=5)
         ws.send(json.dumps({"op": "advertise", "topic": topic, "type": "std_msgs/msg/Bool"}))
         ws.send(json.dumps({"op": "publish", "topic": topic, "msg": {"data": bool(value)}}))
+        time.sleep(0.1)  # Avoid dropping the final message when the client closes immediately.
         command = "START" if value else "STOP/PAUSE"
         return True, f"{command} command sent to {topic}. This confirms transmission only, not rover state."
     except Exception as e:
@@ -225,6 +233,62 @@ def request_one_gps_fix(url: str, topic: str, timeout: float = 10.0):
                 ws.send(json.dumps({"op": "unsubscribe", "topic": topic}))
             except Exception:
                 pass
+
+
+def request_ros_snapshot(url: str, query_topic: str, status_topic: str, data_topic: str,
+                         timeout: float = 5.0):
+    """Request a Pi mission status/result snapshot using only rosbridge topics."""
+    import websocket
+
+    if not url.startswith(("ws://", "wss://")):
+        return None, None, "The ROS connection address must start with ws:// or wss://."
+    request_id = uuid.uuid4().hex
+    ws = None
+    try:
+        ws = websocket.create_connection(url, timeout=timeout)
+        ws.settimeout(0.5)
+        for topic in (status_topic, data_topic):
+            ws.send(json.dumps({"op": "subscribe", "topic": topic,
+                                "type": "std_msgs/msg/String", "throttle_rate": 0, "queue_length": 1}))
+        ws.send(json.dumps({"op": "advertise", "topic": query_topic, "type": "std_msgs/msg/String"}))
+        query = json.dumps({"request_id": request_id, "action": "GET_SNAPSHOT"})
+        ws.send(json.dumps({"op": "publish", "topic": query_topic, "msg": {"data": query}}))
+        status = data = None
+        status_received = data_received = False
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline and not (status_received and data_received):
+            try:
+                packet = json.loads(ws.recv())
+            except websocket.WebSocketTimeoutException:
+                continue
+            if packet.get("op") != "publish" or packet.get("topic") not in (status_topic, data_topic):
+                continue
+            try:
+                response = json.loads(packet.get("msg", {}).get("data", ""))
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                continue
+            if response.get("request_id") != request_id:
+                continue
+            if packet["topic"] == status_topic:
+                status = response.get("status")
+                status_received = True
+            else:
+                data = response.get("data")
+                data_received = True
+        if not status_received and not data_received:
+            return None, None, "No response from the Raspberry Pi mission manager."
+        if not status_received or not data_received:
+            return status, data, "Raspberry Pi returned only part of the mission snapshot."
+        return status, data, None
+    except Exception as exc:
+        return None, None, f"{type(exc).__name__}: {exc}"
+    finally:
+        if ws is not None:
+            for topic in (status_topic, data_topic):
+                try:
+                    ws.send(json.dumps({"op": "unsubscribe", "topic": topic}))
+                except Exception:
+                    pass
             try:
                 ws.close()
             except Exception:
@@ -236,23 +300,47 @@ for key, default in {
     "boundary": [], "map_center": [18.5204, 73.8567], "gps_map_centered": False,
     "last_map_click": None, "boundary_closed": False, "preview_points": [],
     "preview_route": [], "preview_error": None, "preview_area": None, "last_saved_file": None,
-    "rover_gps_fix": None, "rover_gps_attempted": False, "rover_gps_error": None
+    "rover_gps_fix": None, "rover_gps_attempted": False, "rover_gps_error": None,
+    "rover_snapshot_status": None, "rover_snapshot_data": None,
+    "rover_snapshot_attempted": False, "rover_snapshot_error": None
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
 
 with st.expander("⚙️ Project settings (administrator only)"):
     st.text_input("Rover ID", value="ROVER_01", key="rover_id")
-    st.text_input("ROS bridge WebSocket URL", value="ws://192.168.1.12:9090", key="ros_url",
+    st.text_input("ROS bridge WebSocket URL", value=DEFAULT_ROS_URL, key="ros_url",
                   help="On cloud hosting, localhost is the cloud server—not the rover.")
     st.text_input("ROS mission topic", value="/mission/waypoints_json", key="ros_topic")
     st.text_input("ROS mission start/stop topic", value="/mission/start", key="ros_control_topic")
-    st.text_input("ROS GPS topic", value="/sim/gps/fix", key="ros_gps_topic")
-    st.caption("Mission JSON uses std_msgs/msg/String. Start/stop uses std_msgs/msg/Bool on the control topic: true starts/resumes; false pauses the mission. Use a secured connection; do not expose rosbridge publicly without access controls.")
+    st.text_input("ROS GPS topic", value=DEFAULT_GPS_TOPIC, key="ros_gps_topic")
+    st.text_input("Mission query topic", value="/mission/query", key="ros_query_topic")
+    st.text_input("Mission status response topic", value="/mission/status_response", key="ros_status_response_topic")
+    st.text_input("Mission data response topic", value="/mission/data_response", key="ros_data_response_topic")
+    st.caption("Mission JSON uses std_msgs/msg/String. Start/stop uses std_msgs/msg/Bool: true starts/resumes; false pauses navigation while an active stationary sampling cycle completes. This is not an emergency stop. Use a secured connection; do not expose rosbridge publicly without access controls.")
+
+if SITL_DEMO_ENABLED:
+    st.subheader("Software-in-the-loop mission")
+    st.caption("This sends four deterministic demo waypoints to the local ROS simulation; sensor values are synthetic.")
+    if st.button("Send four-waypoint SITL mission", key="send_sitl_mission"):
+        demo_id = "SITL_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        demo = make_sitl_four_waypoint_mission(
+            demo_id, st.session_state.get("rover_id", "ROVER_01"))
+        payload = json.dumps(demo, separators=(",", ":"))
+        filename = f"mission_{demo_id}.json"
+        save_path = MISSIONS_DIR / filename
+        save_path.write_text(json.dumps(demo, indent=2), encoding="utf-8")
+        ok, message = publish_ros(st.session_state.get("ros_url", DEFAULT_ROS_URL),
+                                  st.session_state.get("ros_topic", "/mission/waypoints_json"), payload)
+        st.session_state.last_send_result = (ok, message, filename, payload)
+        if ok:
+            st.success(f"SITL mission {demo_id} sent. Start it explicitly using Start / Resume.")
+        else:
+            st.error(f"Mission saved on this PC but not sent: {message}")
 
 # One-time rover GPS acquisition. The result is stored in session state and never polled.
-gps_url = st.session_state.get("ros_url", "ws://192.168.1.12:9090")
-gps_topic = st.session_state.get("ros_gps_topic", "/sim/gps/fix")
+gps_url = st.session_state.get("ros_url", DEFAULT_ROS_URL)
+gps_topic = st.session_state.get("ros_gps_topic", "/gps/fix")
 if not st.session_state.rover_gps_attempted:
     with st.spinner("Requesting one GPS fix from the rover..."):
         fix, error = request_one_gps_fix(gps_url, gps_topic, timeout=10.0)
@@ -275,6 +363,29 @@ else:
     if st.button("Retry GPS fix"):
         st.session_state.rover_gps_attempted = False
         st.rerun()
+
+st.subheader("Rover mission status and saved samples")
+st.caption("Fetches the current mission state and persisted sample JSON from the Raspberry Pi over rosbridge.")
+if st.button("Refresh rover status and data"):
+    status, data, error = request_ros_snapshot(
+        st.session_state.get("ros_url", DEFAULT_ROS_URL),
+        st.session_state.get("ros_query_topic", "/mission/query"),
+        st.session_state.get("ros_status_response_topic", "/mission/status_response"),
+        st.session_state.get("ros_data_response_topic", "/mission/data_response"),
+    )
+    st.session_state.rover_snapshot_status = status
+    st.session_state.rover_snapshot_data = data
+    st.session_state.rover_snapshot_error = error
+    st.session_state.rover_snapshot_attempted = True
+if st.session_state.rover_snapshot_error:
+    st.warning(f"Raspberry Pi snapshot unavailable: {st.session_state.rover_snapshot_error}")
+if st.session_state.rover_snapshot_status is not None:
+    st.json(st.session_state.rover_snapshot_status, expanded=False)
+if st.session_state.rover_snapshot_data:
+    st.download_button("Download mission sample JSON",
+                       data=json.dumps(st.session_state.rover_snapshot_data, indent=2),
+                       file_name=f"{st.session_state.rover_snapshot_data.get('mission_id', 'mission')}_samples.json",
+                       mime="application/json")
 
 # Spacing controls
 st.subheader("1. Set soil-sampling spacing")
@@ -423,7 +534,7 @@ with side_col:
         save_path.write_text(json.dumps(mission, indent=2), encoding="utf-8")
         st.session_state.last_saved_file = str(save_path)
         try:
-            ok, message = publish_ros(st.session_state.get("ros_url", "ws://localhost:9090"),
+            ok, message = publish_ros(st.session_state.get("ros_url", DEFAULT_ROS_URL),
                                       st.session_state.get("ros_topic", "/mission/waypoints_json"), payload)
         except ImportError:
             ok, message = False, "WebSocket package missing. Install the requirements."
@@ -440,13 +551,13 @@ with side_col:
 
     st.divider()
     st.subheader("4. Mission controls")
-    st.caption("Start/resume requires a mission to have been sent and accepted by the ROS navigator. Stop sends false to the same control topic; the current navigator implementation treats this as pause, not an emergency stop.")
+    st.caption("Start/resume requires a mission to be accepted by the Pi mission manager. Stop pauses navigation; an active stationary sampling cycle completes safely. This is not an emergency stop.")
     control_col1, control_col2 = st.columns(2)
     with control_col1:
         if st.button("▶️ Start / Resume", type="primary", use_container_width=True):
             try:
                 ok, message = publish_ros_bool(
-                    st.session_state.get("ros_url", "ws://localhost:9090"),
+                    st.session_state.get("ros_url", DEFAULT_ROS_URL),
                     st.session_state.get("ros_control_topic", "/mission/start"),
                     True,
                 )
@@ -460,7 +571,7 @@ with side_col:
         if st.button("⏸️ Stop / Pause", use_container_width=True):
             try:
                 ok, message = publish_ros_bool(
-                    st.session_state.get("ros_url", "ws://localhost:9090"),
+                    st.session_state.get("ros_url", DEFAULT_ROS_URL),
                     st.session_state.get("ros_control_topic", "/mission/start"),
                     False,
                 )
